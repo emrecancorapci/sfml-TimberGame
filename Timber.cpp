@@ -3,7 +3,6 @@
 #include <sstream>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
-// The .hpp file extension means it's a header file.
 
 using namespace std;
 using namespace sf;
@@ -53,8 +52,7 @@ void updateBranches(int seed)
 }
 #pragma endregion
 
-
-#pragma region GameObject
+#pragma region GameObjects Classes
 
 class GameObject
 {
@@ -65,7 +63,7 @@ protected:
 public:
 	float speed;
 
-	GameObject(string tf, float x, float y, bool a = false, float s = 0.0f)
+	GameObject(string tf, float x, float y, bool a = true, float s = 0.0f)
 		:active(a), speed(s)
 	{
 		texture->loadFromFile(tf);
@@ -73,7 +71,7 @@ public:
 		sprite.setPosition(x, y);
 	}
 
-	GameObject(Texture* t, float x, float y, bool a = false, float s = 0.0f)
+	GameObject(Texture* t, float x, float y, bool a = true, float s = 0.0f)
 		:active(a), speed(s), texture(t)
 	{
 		sprite.setTexture(*t);
@@ -90,9 +88,10 @@ public:
 class Player : public GameObject
 {
 public:
-	Side side;
+	Side side = Side::LEFT;;
+	bool acceptInput = false;
 
-	Player(string tf, float x, float y, bool a = false)
+	Player(string tf, float x, float y, bool a = true)
 		:GameObject(tf, x, y, a)
 	{
 		texture->loadFromFile(tf);
@@ -106,7 +105,7 @@ class Axe : public GameObject
 public:
 	const float leftPosition;
 	const float rightPosition;
-	Axe(string tf, float x, float y, float lp, float rp, bool a = false)
+	Axe(string tf, float x, float y, float lp, float rp, bool a = true)
 		:GameObject(tf, x, y, a), leftPosition(lp), rightPosition(rp)
 	{
 		texture->loadFromFile(tf);
@@ -119,7 +118,7 @@ class Log : public GameObject
 {
 public:
 	float speed[2] =  {0,0};
-	Log(string tf, float x, float y, float sx, float sy, bool a = false)
+	Log(string tf, float x, float y, float sx, float sy, bool a = true)
 		:GameObject(tf, x, y, a)
 	{
 		speed[0] = sx;
@@ -130,7 +129,7 @@ public:
 	}
 };
 
-
+#pragma region Functions
 
 void GameObject::setActive(bool a)
 {
@@ -156,6 +155,7 @@ Vector2f GameObject::getPosition() {
 
 #pragma endregion
 
+#pragma endregion
 
 /*Text* TextBlock(string t, Font f, int s, float x = 0, float y = 0, Color c = Color::White,
 	bool centered = false)
@@ -182,24 +182,30 @@ int main()
 {
 	#pragma region Start
 
+	Clock clock;
+
 	#pragma region GameObjects
 
 	GameObject background("graphics/background.png", 0, 0);
 	GameObject tree("graphics/tree.png", 810, 0);
 	GameObject bee("graphics/bee.png", 0, 800);
-	bee.speed = 0.0f;
 	bee.setActive(false);
 
 	Texture* textureCloud = new Texture();
 	textureCloud->loadFromFile("graphics/cloud.png");
-	GameObject cloud1(textureCloud, 0, 0);
-	GameObject cloud2(textureCloud, 0, 250);
-	GameObject cloud3(textureCloud, 0, 500);
+	GameObject clouds[] = { GameObject(textureCloud, 0, 0),
+							GameObject(textureCloud, 0, 250),
+							GameObject(textureCloud, 0, 500) };
+	//GameObject cloud1(textureCloud, 0, 0);
+	//GameObject cloud2(textureCloud, 0, 250);
+	//GameObject cloud3(textureCloud, 0, 500);
+
+	Player player("graphics/player.png", 580, 720);
+	GameObject gravestone("graphics/rip.png", 600, 860);
+	Axe axe("graphics/axe.png", 700, 830, 700, 1075);
+	Log log("graphics/log.png", 810, 720, 1000, -1500);
 
 #pragma endregion
-
-	// Clock
-	Clock clock;
 
 	#pragma region Time Bar
 
@@ -271,29 +277,73 @@ int main()
 
 #pragma endregion
 
-	// Prepare the player
-	Player player("graphics/player.png", 580, 720);
-	player.side = Side::LEFT;
-	GameObject gravestone("graphics/rip.png", 800, 600);
-	Axe axe("graphics/axe.png", 700, 830, 700, 1075);
-	Log log("graphics/log.png", 810, 720, 1000, -1500);
+	#pragma region Player
 
-	// Line the axe up with the tree
+
+	#pragma endregion
+
 	#pragma endregion
 
 	while (window.isOpen())
 	{
+
+		//Event
+		Event event;
+
+		while (window.pollEvent(event))
+		{
+			if (event.type == Event::KeyReleased && !paused)
+			{
+				player.acceptInput = true;
+
+				axe.setPosition(2000, axe.getPosition().y);
+			}
+		}
 
 		#pragma region Input
 
 		if (Keyboard::isKeyPressed(Keyboard::Escape)) window.close();
 		if (Keyboard::isKeyPressed(Keyboard::Return) && paused)
 		{
-			paused = false;
 			score = 0;
 			timeRemaining = 6;
-		}
 
+			// Make all branches disappear starting in the second position
+			for (int i = 1; i < NUM_BRANCHES; i++)
+			{
+				branchPositions[i] = Side::NONE;
+			}
+			// Make sure the gravestone is hidden
+			gravestone.setPosition(675, 2000);
+			// Move the player into position
+			player.setPosition(580, 720);
+			player.acceptInput = true;
+
+			paused = false;
+		}
+		if (player.acceptInput)
+		{
+			// ...
+
+			// Right cursor key
+			if(Keyboard::isKeyPressed(Keyboard::Right))
+			{
+				player.side = Side::RIGHT;
+				score++;
+
+				timeRemaining += (2.f / score) + .15;
+
+				axe.setPosition(axe.rightPosition, axe.getPosition().y);
+				player.setPosition(1200, 720);
+				updateBranches(score);
+
+				log.setPosition(810, 720);
+				log.speed[0] = -5000;
+				log.setActive(true);
+
+				player.acceptInput = false;
+			}
+		}
 		#pragma endregion
 
 		#pragma region Update
@@ -354,7 +404,34 @@ int main()
 			#pragma region Clouds
 
 			// Manage the clouds
-			// Cloud 1
+			for (int i = 0; i < 2; i++)
+			{
+				if (!clouds[i].isActive())
+				{
+					// How fast is the cloud
+					srand((int)time(0) * 10 * i);
+					clouds[i].speed = rand() % 200;
+
+					// How high is the cloud
+					srand((int)time(0) * 10 * i);
+					float height = (rand() % (150 * (i + 2))) - 150;
+					clouds[i].setPosition(-200, height);
+					clouds[i].setActive(true);
+				}
+				else
+				{
+					clouds[i].setPosition
+					(
+						clouds[i].getPosition().x + (clouds[i].speed * dt.asSeconds()),
+						clouds[i].getPosition().y
+					);
+
+					// Has the cloud reached the right edge?
+					if (clouds[i].getPosition().x > 1920)
+						clouds[i].setActive(false);
+				}
+			}
+			/* Cloud 1
 			if (!cloud1.isActive())
 			{
 				// How fast is the cloud
@@ -430,9 +507,9 @@ int main()
 				// Has the cloud reached the right edge?
 				if (cloud3.getPosition().x > 1920)
 					cloud3.setActive(false);
-			}
+			}*/
 
-#pragma endregion
+			#pragma endregion
 
 			stringstream ss;
 			ss << "Score = " << score;
@@ -468,36 +545,54 @@ int main()
 
 #pragma endregion
 
+#pragma region Log
+
+			if (log.isActive())
+			{
+				log.setPosition(log.getPosition().x + (log.speed[0] * dt.asSeconds()),
+								log.getPosition().y + (log.speed[1] * dt.asSeconds()));
+
+				// If log reaches right edge
+				bool isLogReachedRight = log.getPosition().x < -100 || log.getPosition().x > 2000;
+				if (isLogReachedRight) {
+					log.setActive(false);
+					log.setPosition(810, 720);
+				}
+			}
+
+#pragma endregion
+
 		}
 
 		#pragma endregion
+
+		#pragma region Screen
+
+		window.clear();
 
 		#pragma region Draw
 
-		window.clear(); // Clear last frame
-
-		#pragma region Sprites
-
 		window.draw(background.getSprite());
-		window.draw(cloud1.getSprite());
-		window.draw(cloud2.getSprite());
-		window.draw(cloud3.getSprite());
+		window.draw(clouds[0].getSprite());
+		window.draw(clouds[1].getSprite());
+		window.draw(clouds[2].getSprite());
+
+		for (int i = 0; i < NUM_BRANCHES; i++) window.draw(branches[i]);
+
 		window.draw(tree.getSprite());
 
-		#pragma endregion
-
-		// Draw the branches
-		for (int i = 0; i < NUM_BRANCHES; i++) {
-			window.draw(branches[i]);
-		}
-
+		window.draw(player.getSprite());
+		window.draw(axe.getSprite());
+		window.draw(gravestone.getSprite());
 		window.draw(bee.getSprite());
 
 		window.draw(timeBar);
 		window.draw(scoreText);
 		if (paused) window.draw(messageText);
 
-		window.display(); // Display current frame
+		#pragma endregion
+
+		window.display();
 
 		#pragma endregion
 
