@@ -7,12 +7,6 @@
 using namespace std;
 using namespace sf;
 
-// Creates a video mode object
-VideoMode vm(1920, 1080);
-
-// Create and open a window for the game
-RenderWindow window(vm, "Timberman", Style::Fullscreen);
-
 #pragma region Branch
 
 // Function declaration
@@ -20,7 +14,7 @@ void updateBranches(int seed);
 const int NUM_BRANCHES = 6;
 Sprite branches[NUM_BRANCHES];
 
-// Where is the player/branch?
+// Where is the Player/branch?
 // Left or Right
 enum class Side { LEFT, RIGHT, NONE };
 Side branchPositions[NUM_BRANCHES];
@@ -63,7 +57,7 @@ protected:
 public:
 	float speed;
 
-	GameObject(string tf, float x, float y, bool a = true, float s = 0.0f)
+	GameObject(string tf, float x, float y, bool a = false, float s = 0.0f)
 		:active(a), speed(s)
 	{
 		texture->loadFromFile(tf);
@@ -71,8 +65,8 @@ public:
 		sprite.setPosition(x, y);
 	}
 
-	GameObject(Texture* t, float x, float y, bool a = true, float s = 0.0f)
-		:active(a), speed(s), texture(t)
+	GameObject(Texture* t, float x, float y, bool a = false, float s = 0.0f)
+		:texture(t), active(a), speed(s)
 	{
 		sprite.setTexture(*t);
 		sprite.setPosition(x, y);
@@ -114,11 +108,11 @@ public:
 	}
 };
 
-class Log : public GameObject
+class WoodLog : public GameObject
 {
 public:
 	float speed[2] =  {0,0};
-	Log(string tf, float x, float y, float sx, float sy, bool a = true)
+	WoodLog(string tf, float x, float y, float sx, float sy, bool a = true)
 		:GameObject(tf, x, y, a)
 	{
 		speed[0] = sx;
@@ -157,7 +151,7 @@ Vector2f GameObject::getPosition() {
 
 #pragma endregion
 
-/*Text* TextBlock(string t, Font f, int s, float x = 0, float y = 0, Color c = Color::White,
+/*Text TextBlock(string& t, Font f, int s, float x = 0, float y = 0, Color c = Color::White,
 	bool centered = false)
 {
 	Text text;
@@ -175,13 +169,15 @@ Vector2f GameObject::getPosition() {
 
 	text.setPosition(x, y);
 
-	return &text;
+	return text;
 }*/
 
 int main()
 {
 	#pragma region Start
 
+	VideoMode vm(1920, 1080);
+	RenderWindow window(vm, "Timberman", Style::Fullscreen);
 	Clock clock;
 
 	#pragma region GameObjects
@@ -203,7 +199,7 @@ int main()
 	Player player("graphics/player.png", 580, 720);
 	GameObject gravestone("graphics/rip.png", 600, 860);
 	Axe axe("graphics/axe.png", 700, 830, 700, 1075);
-	Log log("graphics/log.png", 810, 720, 1000, -1500);
+	WoodLog log("graphics/log.png", 810, 720, 1000, -1500);
 
 #pragma endregion
 
@@ -244,7 +240,10 @@ int main()
 
 	messageText.setPosition(vm.width / 2, vm.height / 2);
 
-	// messageText = TextBlock("Press Enter to start!", font, 75, vm.width / 2, vm.height / 2, Color::White, true);
+	/*string* txt = new string();
+	*txt = "Press Enter to start!";
+	Text messageText = TextBlock(*txt, font, 75, vm.width / 2, vm.height / 2, Color::White, true);
+	delete txt;*/
 
 	// Score Text
 	int score = 0;
@@ -261,18 +260,18 @@ int main()
 
 	#pragma region Branches
 
-		// Prepare 6 branches
+	// Prepare 6 branches
 	Texture textureBranch;
 	textureBranch.loadFromFile("graphics/branch.png");
 	// Set the texture for each branch sprite
-	for (int i = 0; i < NUM_BRANCHES; i++)
+	for (auto& branch : branches)
 	{
-		branches[i].setTexture(textureBranch);
-		branches[i].setPosition(-2000, -2000);
+		branch.setTexture(textureBranch);
+		branch.setPosition(-2000, -2000);
 
 		// Set the sprite's origin to dead centre
 		// We can then spin it round without changing its position
-		branches[i].setOrigin(220, 20);
+		branch.setOrigin(220, 20);
 	}
 
 #pragma endregion
@@ -282,13 +281,32 @@ int main()
 
 	#pragma endregion
 
+	#pragma region Sounds
+
+	SoundBuffer chopBuffer;
+	chopBuffer.loadFromFile("sound/chop.wav");
+	Sound chop;
+	chop.setBuffer(chopBuffer);
+
+	SoundBuffer deathBuffer;
+	deathBuffer.loadFromFile("sound/death.wav");
+	Sound death;
+	death.setBuffer(deathBuffer);
+
+	SoundBuffer oot_buffer;
+	oot_buffer.loadFromFile("sound/out_of_time.wav");
+	Sound outOfTime;
+	outOfTime.setBuffer(oot_buffer);
+
+	#pragma endregion
+	
 	#pragma endregion
 
 	while (window.isOpen())
 	{
 
 		//Event
-		Event event;
+		Event event{};
 
 		while (window.pollEvent(event))
 		{
@@ -315,7 +333,7 @@ int main()
 			}
 			// Make sure the gravestone is hidden
 			gravestone.setPosition(675, 2000);
-			// Move the player into position
+			// Move the Player into position
 			player.setPosition(580, 720);
 			player.acceptInput = true;
 
@@ -323,7 +341,26 @@ int main()
 		}
 		if (player.acceptInput)
 		{
-			// ...
+			// Left cursor key
+			if (Keyboard::isKeyPressed(Keyboard::Left))
+			{
+				player.side = Side::LEFT;
+				score++;
+
+				timeRemaining += (2.f / score) + .15;
+
+				axe.setPosition(axe.leftPosition, axe.getPosition().y);
+				player.setPosition(720, 720);
+				player.getSprite().setScale(1,-1000);
+				updateBranches(score);
+
+				log.setPosition(810, 720);
+				log.speed[0] = 50;
+				log.setActive(true);
+
+				chop.play();
+				player.acceptInput = false;
+			}
 
 			// Right cursor key
 			if(Keyboard::isKeyPressed(Keyboard::Right))
@@ -338,23 +375,28 @@ int main()
 				updateBranches(score);
 
 				log.setPosition(810, 720);
-				log.speed[0] = -5000;
+				log.speed[0] = 50;
 				log.setActive(true);
 
+				chop.play();
 				player.acceptInput = false;
 			}
 		}
+
+
 		#pragma endregion
+
+
 
 		#pragma region Update
 
 		if (!paused)
 		{
 			// Measure time
-			Time dt = clock.restart();
+			Time deltaTime = clock.restart();
 
-			// Substract from the amount of time remaining
-			timeRemaining -= dt.asSeconds();
+			// Subtract from the amount of time remaining
+			timeRemaining -= deltaTime.asSeconds();
 
 			// Size up the time bar
 			timeBar.setSize(Vector2f(timeBarWidthPerSecond * timeRemaining, timeBarHeight));
@@ -364,9 +406,11 @@ int main()
 				messageText.setString("Out of time!");
 
 				// Reposition the text based on its new size
-				FloatRect textRect = messageText.getLocalBounds();
+				textRect = messageText.getLocalBounds();
 				messageText.setOrigin(textRect.left + textRect.width / 2.0f,
 					textRect.top + textRect.height / 2.0f);
+
+				outOfTime.play();
 
 				paused = true;
 			}
@@ -379,7 +423,8 @@ int main()
 				bee.speed = (rand() % 200) + 200; // Get a random number between 200-399
 
 				srand((int)time(0) * 10); // Seed the random number generator again
-				float height = (rand() % 500) + 500; // Get a random number between 500-999
+				float height = (rand() % 500) + 500;
+				// Get a random number between 500-999
 				bee.setPosition(2000, height); // Set pos to (2000,height)
 				bee.setActive(true);
 			}
@@ -388,7 +433,7 @@ int main()
 			{
 				bee.setPosition
 				(
-					bee.getPosition().x - (bee.speed * dt.asSeconds()),
+					bee.getPosition().x - (bee.speed * deltaTime.asSeconds()),
 					bee.getPosition().y
 				);
 
@@ -404,7 +449,7 @@ int main()
 			#pragma region Clouds
 
 			// Manage the clouds
-			for (int i = 0; i < 2; i++)
+			for (int i = 0; i < 3; i++)
 			{
 				if (!clouds[i].isActive())
 				{
@@ -422,7 +467,7 @@ int main()
 				{
 					clouds[i].setPosition
 					(
-						clouds[i].getPosition().x + (clouds[i].speed * dt.asSeconds()),
+						clouds[i].getPosition().x + (clouds[i].speed * deltaTime.asSeconds()),
 						clouds[i].getPosition().y
 					);
 
@@ -431,83 +476,6 @@ int main()
 						clouds[i].setActive(false);
 				}
 			}
-			/* Cloud 1
-			if (!cloud1.isActive())
-			{
-				// How fast is the cloud
-				srand((int)time(0) * 10);
-				cloud1.speed = rand() % 200;
-
-				// How high is the cloud
-				srand((int)time(0) * 10);
-				float height = rand() % 150;
-				cloud1.setPosition(-200, height);
-				cloud1.setActive(true);
-			}
-			else
-			{
-				cloud1.setPosition
-				(
-					cloud1.getPosition().x + (cloud1.speed * dt.asSeconds()),
-					cloud1.getPosition().y
-				);
-
-				// Has the cloud reached the right edge?
-				if (cloud1.getPosition().x > 1920)
-					cloud1.setActive(false);
-			}
-
-			// Cloud 2
-			if (!cloud2.isActive())
-			{
-				// How fast is the cloud
-				srand((int)time(0) * 20);
-				cloud2.speed = rand() % 200;
-
-				// How high is the cloud
-				srand((int)time(0) * 20);
-				float height = (rand() % 300) - 150;
-				cloud2.setPosition(-200, height);
-				cloud2.setActive(true);
-			}
-			else
-			{
-				cloud2.setPosition
-				(
-					cloud2.getPosition().x + (cloud2.speed * dt.asSeconds()),
-					cloud2.getPosition().y
-				);
-
-				// Has the cloud reached the right edge?
-				if (cloud2.getPosition().x > 1920)
-					cloud2.setActive(false);
-			}
-
-			// Cloud 3
-			if (!cloud3.isActive())
-			{
-				// How fast is the cloud
-				srand((int)time(0) * 30);
-				cloud3.speed = rand() % 200;
-
-				// How high is the cloud
-				srand((int)time(0) * 30);
-				float height = (rand() % 450) - 150;
-				cloud3.setPosition(-200, height);
-				cloud3.setActive(true);
-			}
-			else
-			{
-				cloud3.setPosition
-				(
-					cloud3.getPosition().x + (cloud3.speed * dt.asSeconds()),
-					cloud3.getPosition().y
-				);
-
-				// Has the cloud reached the right edge?
-				if (cloud3.getPosition().x > 1920)
-					cloud3.setActive(false);
-			}*/
 
 			#pragma endregion
 
@@ -549,14 +517,36 @@ int main()
 
 			if (log.isActive())
 			{
-				log.setPosition(log.getPosition().x + (log.speed[0] * dt.asSeconds()),
-								log.getPosition().y + (log.speed[1] * dt.asSeconds()));
+				log.setPosition(log.getPosition().x + (log.speed[0] * deltaTime.asSeconds()),
+								log.getPosition().y + (log.speed[1] * deltaTime.asSeconds()));
 
-				// If log reaches right edge
+				// If WoodLog reaches right edge
 				bool isLogReachedRight = log.getPosition().x < -100 || log.getPosition().x > 2000;
-				if (isLogReachedRight) {
+				if (isLogReachedRight)
+				{
 					log.setActive(false);
 					log.setPosition(810, 720);
+				}
+
+				if (branchPositions[5] == player.side)
+				{
+					// death
+					paused = true;
+					player.acceptInput = false;
+
+					gravestone.setPosition(525, 760);
+
+					player.setPosition(2000, 660);
+
+					messageText.setString("DEAD!");
+					death.play();
+
+					textRect = messageText.getLocalBounds();
+
+					messageText.setOrigin(textRect.left + textRect.width / 2.f,
+						textRect.top + textRect.height / 2.f);
+
+					messageText.setPosition(vm.width / 2.f, vm.height / 2.f);
 				}
 			}
 
@@ -577,7 +567,7 @@ int main()
 		window.draw(clouds[1].getSprite());
 		window.draw(clouds[2].getSprite());
 
-		for (int i = 0; i < NUM_BRANCHES; i++) window.draw(branches[i]);
+		for (auto& branch : branches) window.draw(branch);
 
 		window.draw(tree.getSprite());
 
