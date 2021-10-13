@@ -3,81 +3,27 @@
 #include <sstream>
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
+#include "GameObject.h"
 
 using namespace std;
 using namespace sf;
 
 #pragma region Branch
 
-// Function declaration
+constexpr int NUM_BRANCHES = 6;
+
 void updateBranches(int seed);
-const int NUM_BRANCHES = 6;
+enum class Side;
 Sprite branches[NUM_BRANCHES];
 
-// Where is the Player/branch?
-// Left or Right
+
 enum class Side { LEFT, RIGHT, NONE };
 Side branchPositions[NUM_BRANCHES];
 
-// Function definition
-void updateBranches(int seed)
-{
-	// Move all the branches down one place
-	for (int j = NUM_BRANCHES - 1; j > 0; j--)
-	{
-		branchPositions[j] = branchPositions[j - 1];
-	}
 
-	// Spawn a new branch at position 0
-	// LEFT, RIGHT or NONE
-	srand((int)time(0) + seed);
-	int r = (rand() % 5);
-	switch (r) {
-	case 0:
-		branchPositions[0] = Side::LEFT;
-		break;
-	case 1:
-		branchPositions[0] = Side::RIGHT;
-		break;
-	default:
-		branchPositions[0] = Side::NONE;
-		break;
-	}
-}
 #pragma endregion
 
 #pragma region GameObjects Classes
-
-class GameObject
-{
-protected:
-	Texture* texture = new Texture();
-	Sprite sprite;
-	bool active;
-public:
-	float speed;
-
-	GameObject(string tf, float x, float y, bool a = false, float s = 0.0f)
-		:active(a), speed(s)
-	{
-		texture->loadFromFile(tf);
-		sprite.setTexture(*texture);
-		sprite.setPosition(x, y);
-	}
-
-	GameObject(Texture* t, float x, float y, bool a = false, float s = 0.0f)
-		:texture(t), active(a), speed(s)
-	{
-		sprite.setTexture(*t);
-		sprite.setPosition(x, y);
-	}
-
-	void setActive(bool active);
-	bool isActive();
-	Sprite getSprite();
-	void setPosition(float x, float y);
-	Vector2f getPosition();
-};
 
 class Player : public GameObject
 {
@@ -85,7 +31,7 @@ public:
 	Side side = Side::LEFT;;
 	bool acceptInput = false;
 
-	Player(string tf, float x, float y, bool a = true)
+	Player(const string tf, float x, float y, bool a = true)
 		:GameObject(tf, x, y, a)
 	{
 		texture->loadFromFile(tf);
@@ -99,7 +45,7 @@ class Axe : public GameObject
 public:
 	const float leftPosition;
 	const float rightPosition;
-	Axe(string tf, float x, float y, float lp, float rp, bool a = true)
+	Axe(const string& tf, float x, float y, float lp, float rp, bool a = true)
 		:GameObject(tf, x, y, a), leftPosition(lp), rightPosition(rp)
 	{
 		texture->loadFromFile(tf);
@@ -112,7 +58,7 @@ class WoodLog : public GameObject
 {
 public:
 	float speed[2] =  {0,0};
-	WoodLog(string tf, float x, float y, float sx, float sy, bool a = true)
+	WoodLog(const string& tf, float x, float y, float sx, float sy, bool a = true)
 		:GameObject(tf, x, y, a)
 	{
 		speed[0] = sx;
@@ -122,32 +68,6 @@ public:
 		sprite.setPosition(x, y);
 	}
 };
-
-#pragma region Functions
-
-void GameObject::setActive(bool a)
-{
-	active = a;
-}
-bool GameObject::isActive()
-{
-	return active;
-}
-Sprite GameObject::getSprite()
-{
-	return sprite;
-}
-void GameObject::setPosition(float x, float y)
-{
-	sprite.setPosition(x, y);
-}
-Vector2f GameObject::getPosition() {
-	float x = sprite.getPosition().x;
-	float y = sprite.getPosition().y;
-	return sprite.getPosition();
-}
-
-#pragma endregion
 
 #pragma endregion
 
@@ -172,12 +92,42 @@ Vector2f GameObject::getPosition() {
 	return text;
 }*/
 
+void updateBranches(int seed)
+{
+	// Move all the branches down one place
+	for (int j = NUM_BRANCHES - 1; j > 0; j--)
+	{
+		branchPositions[j] = branchPositions[j - 1];
+	}
+
+	// Spawn a new branch at position 0
+	// LEFT, RIGHT or NONE
+	srand((int)time(0) + seed);
+	int r = (rand() % 5);
+	switch (r) {
+	case 0:
+		branchPositions[0] = Side::LEFT;
+		break;
+	case 1:
+		branchPositions[0] = Side::RIGHT;
+		break;
+	default:
+		branchPositions[0] = Side::NONE;
+		break;
+	}
+}
+
 int main()
 {
 	#pragma region Start
 
 	VideoMode vm(1920, 1080);
-	RenderWindow window(vm, "Timberman", Style::Fullscreen);
+
+	auto* gameName = new string();
+	*gameName = "Timberman";
+	RenderWindow window(vm, *gameName, Style::Fullscreen);
+	delete gameName;
+
 	Clock clock;
 
 	#pragma region GameObjects
@@ -187,14 +137,11 @@ int main()
 	GameObject bee("graphics/bee.png", 0, 800);
 	bee.setActive(false);
 
-	Texture* textureCloud = new Texture();
+	auto* textureCloud = new Texture();
 	textureCloud->loadFromFile("graphics/cloud.png");
 	GameObject clouds[] = { GameObject(textureCloud, 0, 0),
 							GameObject(textureCloud, 0, 250),
 							GameObject(textureCloud, 0, 500) };
-	//GameObject cloud1(textureCloud, 0, 0);
-	//GameObject cloud2(textureCloud, 0, 250);
-	//GameObject cloud3(textureCloud, 0, 500);
 
 	Player player("graphics/player.png", 580, 720);
 	GameObject gravestone("graphics/rip.png", 600, 860);
@@ -206,15 +153,22 @@ int main()
 	#pragma region Time Bar
 
 	RectangleShape timeBar;
-	float timeBarStartWidth = 400;
-	float timeBarHeight = 80;
-	timeBar.setSize(Vector2f(timeBarStartWidth, timeBarHeight));
+
+	float* timeBarStartWidth;
+	float* timeBarHeight;
+
+	*timeBarStartWidth = 400;
+	*timeBarHeight = 80;
+
+	timeBar.setSize(Vector2f(*timeBarStartWidth, *timeBarHeight));
 	timeBar.setFillColor(Color::Red);
-	timeBar.setPosition((vm.width / 2.0f) - timeBarStartWidth / 2, vm.height - 100);
+	timeBar.setPosition((vm.width / 2.f) - *timeBarStartWidth / 2.f, vm.height - 100);
 
 	Time gameTimeTotal;
 	float timeRemaining = 6.0f;
-	float timeBarWidthPerSecond = timeBarStartWidth / timeRemaining;
+	float timeBarWidthPerSecond = *timeBarStartWidth / timeRemaining;
+
+	delete timeBarStartWidth;
 
 	// Pause
 	bool paused = true;
@@ -399,7 +353,7 @@ int main()
 			timeRemaining -= deltaTime.asSeconds();
 
 			// Size up the time bar
-			timeBar.setSize(Vector2f(timeBarWidthPerSecond * timeRemaining, timeBarHeight));
+			timeBar.setSize(Vector2f(timeBarWidthPerSecond * timeRemaining, *timeBarHeight));
 
 			if (timeRemaining <= 0.0f)
 			{
