@@ -154,21 +154,19 @@ int main()
 
 	RectangleShape timeBar;
 
-	float* timeBarStartWidth;
-	float* timeBarHeight;
+	float timeBarStartWidth;
+	float timeBarHeight;
 
-	*timeBarStartWidth = 400;
-	*timeBarHeight = 80;
+	timeBarStartWidth = 400;
+	timeBarHeight = 80;
 
-	timeBar.setSize(Vector2f(*timeBarStartWidth, *timeBarHeight));
+	timeBar.setSize(Vector2f(timeBarStartWidth, timeBarHeight));
 	timeBar.setFillColor(Color::Red);
-	timeBar.setPosition((vm.width / 2.f) - *timeBarStartWidth / 2.f, vm.height - 100);
+	timeBar.setPosition((vm.width / 2.f) - timeBarStartWidth / 2.f, vm.height - 100);
 
 	Time gameTimeTotal;
 	float timeRemaining = 6.0f;
-	float timeBarWidthPerSecond = *timeBarStartWidth / timeRemaining;
-
-	delete timeBarStartWidth;
+	float timeBarWidthPerSecond = timeBarStartWidth / timeRemaining;
 
 	// Pause
 	bool paused = true;
@@ -353,7 +351,7 @@ int main()
 			timeRemaining -= deltaTime.asSeconds();
 
 			// Size up the time bar
-			timeBar.setSize(Vector2f(timeBarWidthPerSecond * timeRemaining, *timeBarHeight));
+			timeBar.setSize(Vector2f(timeBarWidthPerSecond * timeRemaining, timeBarHeight));
 
 			if (timeRemaining <= 0.0f)
 			{
