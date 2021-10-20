@@ -23,7 +23,7 @@ Side branchPositions[NUM_BRANCHES];
 
 #pragma endregion
 
-#pragma region GameObjects Classes
+#pragma region Classes
 
 class Player : public GameObject
 {
@@ -71,6 +71,7 @@ public:
 
 #pragma endregion
 
+// Doesn't work. I don't know why :(
 /*Text TextBlock(string& t, Font f, int s, float x = 0, float y = 0, Color c = Color::White,
 	bool centered = false)
 {
@@ -119,7 +120,8 @@ void updateBranches(int seed)
 
 int main()
 {
-	#pragma region Start
+	
+#pragma region Start
 
 	VideoMode vm(1920, 1080);
 
@@ -130,7 +132,7 @@ int main()
 
 	Clock clock;
 
-	#pragma region GameObjects
+#pragma region GameObjects
 
 	GameObject background("graphics/background.png", 0, 0);
 	GameObject tree("graphics/tree.png", 810, 0);
@@ -140,8 +142,8 @@ int main()
 	auto* textureCloud = new Texture();
 	textureCloud->loadFromFile("graphics/cloud.png");
 	GameObject clouds[] = { GameObject(textureCloud, 0, 0),
-							GameObject(textureCloud, 0, 250),
-							GameObject(textureCloud, 0, 500) };
+				GameObject(textureCloud, 0, 250),
+				GameObject(textureCloud, 0, 500) };
 
 	Player player("graphics/player.png", 580, 720);
 	GameObject gravestone("graphics/rip.png", 600, 860);
@@ -150,7 +152,7 @@ int main()
 
 #pragma endregion
 
-	#pragma region Time Bar
+#pragma region Time Bar
 
 	RectangleShape timeBar;
 
@@ -173,7 +175,7 @@ int main()
 
 #pragma endregion
 
-	#pragma region Text
+#pragma region Text
 
 	// Font
 	Font font;
@@ -210,7 +212,7 @@ int main()
 
 #pragma endregion
 
-	#pragma region Branches
+#pragma region Branches
 
 	// Prepare 6 branches
 	Texture textureBranch;
@@ -228,12 +230,7 @@ int main()
 
 #pragma endregion
 
-	#pragma region Player
-
-
-	#pragma endregion
-
-	#pragma region Sounds
+#pragma region Sounds
 
 	SoundBuffer chopBuffer;
 	chopBuffer.loadFromFile("sound/chop.wav");
@@ -250,14 +247,14 @@ int main()
 	Sound outOfTime;
 	outOfTime.setBuffer(oot_buffer);
 
-	#pragma endregion
+#pragma endregion
 	
-	#pragma endregion
+#pragma endregion
 
 	while (window.isOpen())
 	{
 
-		//Event
+		// Event
 		Event event{};
 
 		while (window.pollEvent(event))
@@ -283,8 +280,10 @@ int main()
 			{
 				branchPositions[i] = Side::NONE;
 			}
+			
 			// Make sure the gravestone is hidden
 			gravestone.setPosition(675, 2000);
+			
 			// Move the Player into position
 			player.setPosition(580, 720);
 			player.acceptInput = true;
@@ -335,11 +334,9 @@ int main()
 			}
 		}
 
-
 		#pragma endregion
 
-
-
+		
 		#pragma region Update
 
 		if (!paused)
@@ -367,7 +364,8 @@ int main()
 				paused = true;
 			}
 
-			#pragma region Bee
+#pragma region Bee
+			
 			// Setup the bee
 			if (!bee.isActive())
 			{
@@ -395,9 +393,10 @@ int main()
 					bee.setActive(false);
 				}
 			}
-
+			
 #pragma endregion
 
+			
 			#pragma region Clouds
 
 			// Manage the clouds
@@ -431,6 +430,7 @@ int main()
 
 			#pragma endregion
 
+			// Score text
 			stringstream ss;
 			ss << "Score = " << score;
 			scoreText.setString(ss.str());
@@ -465,6 +465,7 @@ int main()
 
 #pragma endregion
 
+			
 #pragma region Log
 
 			if (log.isActive())
@@ -506,13 +507,13 @@ int main()
 
 		}
 
-		#pragma endregion
+#pragma endregion
 
-		#pragma region Screen
+#pragma region Screen
 
 		window.clear();
 
-		#pragma region Draw
+#pragma region Draw
 
 		window.draw(background.getSprite());
 		window.draw(clouds[0].getSprite());
@@ -532,11 +533,11 @@ int main()
 		window.draw(scoreText);
 		if (paused) window.draw(messageText);
 
-		#pragma endregion
+#pragma endregion
 
 		window.display();
 
-		#pragma endregion
+#pragma endregion
 
 	}
 
